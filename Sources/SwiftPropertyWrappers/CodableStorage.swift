@@ -15,12 +15,12 @@ public struct CodableStorage<Value: Codable> {
         
     private let filename: String
     private let defaultValue: Value
-    private let directory: FileManager.SearchPathDirectory
+    private let directory: FileHelper.Directory
     private let publisher: PassthroughSubject<Value, Never> = .init()
 
     public init(filename: String,
-         defaultValue: Value,
-         directory: FileManager.SearchPathDirectory) {
+                defaultValue: Value,
+                directory: FileHelper.Directory) {
         self.filename = filename
         self.defaultValue = defaultValue
         self.directory = directory
@@ -28,7 +28,8 @@ public struct CodableStorage<Value: Codable> {
 
     public var wrappedValue: Value {
         get {
-            FileHelper.retrieve(filename, from: directory) ?? defaultValue
+            FileHelper.retrieve(filename,
+                                from: directory) ?? defaultValue
         }
         set {
             let value = newValue as Any
@@ -38,7 +39,8 @@ public struct CodableStorage<Value: Codable> {
                 return
             }
             do {
-                try FileHelper.store(safeValue, to: directory, as: filename)
+                try FileHelper.store(safeValue,
+                                     to: directory, as: filename)
                 publisher.send(safeValue)
             } catch {
                 print("*** Failed to save object with name: \(filename), error: \(error)")
