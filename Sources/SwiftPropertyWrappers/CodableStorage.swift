@@ -11,7 +11,7 @@ import Combine
 import FileHelper
 
 @propertyWrapper
-public struct CodableStorage<Value: Codable> {
+public class CodableStorage<Value: Codable> {
         
     private let filename: String
     private let defaultValue: Value
