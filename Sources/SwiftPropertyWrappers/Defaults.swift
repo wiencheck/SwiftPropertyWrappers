@@ -10,27 +10,32 @@ import Foundation
 import Combine
 
 @propertyWrapper
-public struct Defaults<Value> {
+public class Defaults<Value: Codable> {
     
     private let key: String
     private let defaultValue: Value
     private let container: UserDefaults
-    private let valueSubject: PassthroughSubject<Value, Never> = .init()
+    private let valueSubject: PassthroughSubject<Value, Never>
 
     public init(key: String, defaultValue: Value, container: UserDefaults = .standard) {
         self.key = key
         self.defaultValue = defaultValue
         self.container = container
+        valueSubject = .init()
     }
     
     public var wrappedValue: Value {
         get {
-            container.object(forKey: key) as? Value ?? defaultValue
+            guard let data = container.data(forKey: key),
+                  let value = try? JSONDecoder().decode(Value.self, from: data) else {
+                return defaultValue
+            }
+            return value
         }
         set {
-            let value = newValue as Any
-            if let _value = value as? Value {
-                container.set(_value, forKey: key)
+            if let data = try? JSONEncoder().encode(newValue),
+                  !data.isEmpty {
+                container.set(data, forKey: key)
             }
             else {
                 container.removeObject(forKey: key)
