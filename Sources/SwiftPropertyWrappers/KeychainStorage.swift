@@ -11,13 +11,14 @@ import Combine
 import SimpleKeychain
 
 @propertyWrapper
-class KeychainStorage<Value: Codable> {
+public class KeychainStorage<Value: Codable> {
     
     private let key: String
     private let keychain: SimpleKeychain
     private let defaultValue: Value
     private let valueSubject: PassthroughSubject<Value, Never>
-    internal init(keychain: SimpleKeychain = .init(),
+    
+    public init(keychain: SimpleKeychain = .init(),
                   key: String,
                   defaultValue: Value) {
         self.keychain = keychain
@@ -26,7 +27,7 @@ class KeychainStorage<Value: Codable> {
         self.valueSubject = .init()
     }
     
-    var wrappedValue: Value {
+    public var wrappedValue: Value {
         get {
             do {
                 let data = try keychain.data(forKey: key)
@@ -51,7 +52,7 @@ class KeychainStorage<Value: Codable> {
         }
     }
     
-    var projectedValue: AnyPublisher<Value, Never> {
+    public var projectedValue: AnyPublisher<Value, Never> {
         valueSubject.eraseToAnyPublisher()
     }
     
