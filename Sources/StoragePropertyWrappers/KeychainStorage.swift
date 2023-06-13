@@ -10,6 +10,7 @@ import Foundation
 import Combine
 import SimpleKeychain
 
+/// Property wrapper that uses iOS Keychain for persisting value.
 @propertyWrapper
 public class KeychainStorage<Value: Codable> {
     
@@ -18,9 +19,16 @@ public class KeychainStorage<Value: Codable> {
     private let defaultValue: Value
     private let valueSubject: PassthroughSubject<Value, Never>
     
-    public init(keychain: SimpleKeychain = .init(),
-                  key: String,
-                  defaultValue: Value) {
+    /// Initializes the property wrapper.
+    /// - Parameters:
+    ///   - keychain: Instance of `SimpleKeychain` to be used for persisting the value.
+    ///   - key: Key under which the value will be stored in the keychain.
+    ///   - defaultValue: Default value that will be read when no value yet persists.
+    public init(
+        keychain: SimpleKeychain = .init(),
+        key: String,
+        defaultValue: Value
+    ) {
         self.keychain = keychain
         self.key = key
         self.defaultValue = defaultValue
@@ -54,6 +62,25 @@ public class KeychainStorage<Value: Codable> {
     
     public var projectedValue: AnyPublisher<Value, Never> {
         valueSubject.eraseToAnyPublisher()
+    }
+    
+}
+
+public extension KeychainStorage where Value: ExpressibleByNilLiteral {
+    
+    /// Initializes the property wrapper with `nil` as default value.
+    /// - Parameters:
+    ///   - keychain: Instance of `SimpleKeychain` to be used for persisting the value.
+    ///   - key: Key under which the value will be stored in the keychain.
+    convenience init(
+        keychain: SimpleKeychain = .init(),
+        key: String
+    ) {
+        self.init(
+            keychain: keychain,
+            key: key,
+            defaultValue: nil
+        )
     }
     
 }

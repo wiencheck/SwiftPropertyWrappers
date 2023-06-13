@@ -9,6 +9,7 @@
 import Foundation
 import Combine
 
+/// Property wrapper that handles persisting the value to user defaults.
 @propertyWrapper
 public class Defaults<Value: Codable> {
     
@@ -16,8 +17,17 @@ public class Defaults<Value: Codable> {
     private let defaultValue: Value
     private let container: UserDefaults
     private let valueSubject: PassthroughSubject<Value, Never>
-
-    public init(key: String, defaultValue: Value, container: UserDefaults = .standard) {
+    
+    /// Initializes the property wrapper.
+    /// - Parameters:
+    ///   - key: Key under which the value will be stored in user defaults.
+    ///   - defaultValue: Default value that will be read when no value yet persists.
+    ///   - container: Instance of `UserDefaults` which will be used for persisting the value. Defaults to `standard`.
+    public init(
+        key: String,
+        defaultValue: Value,
+        container: UserDefaults = .standard
+    ) {
         self.key = key
         self.defaultValue = defaultValue
         self.container = container
@@ -46,6 +56,26 @@ public class Defaults<Value: Codable> {
     
     public var projectedValue: AnyPublisher<Value, Never> {
         valueSubject.eraseToAnyPublisher()
+    }
+    
+}
+
+public extension Defaults where Value: ExpressibleByNilLiteral {
+    
+    /// Initializes the property wrapper with `nil` as default value.
+    /// - Parameters:
+    ///   - key: Key under which the value will be stored in user defaults.
+    ///   - defaultValue: Default value that will be read when no value yet persists.
+    ///   - container: Instance of `UserDefaults` which will be used for persisting the value. Defaults to `standard`.
+    convenience init(
+        key: String,
+        container: UserDefaults = .standard
+    ) {
+        self.init(
+            key: key,
+            defaultValue: nil,
+            container: container
+        )
     }
     
 }
