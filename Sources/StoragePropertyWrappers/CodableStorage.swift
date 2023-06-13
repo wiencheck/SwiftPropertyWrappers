@@ -18,6 +18,8 @@ public class CodableStorage<Value: Codable> {
     private let defaultValue: Value
     private var cachedValue: Value?
     private let directory: FileHelper.Directory
+    private let encoder: any EncoderProtocol
+    private let decoder: any DecoderProtocol
     private let publisher: PassthroughSubject<Value, Never> = .init()
     private let shouldCacheValue: Bool
     
@@ -31,11 +33,15 @@ public class CodableStorage<Value: Codable> {
         filename: String,
         defaultValue: Value,
         directory: FileHelper.Directory,
+        encoder: any EncoderProtocol = JSONEncoder(),
+        decoder: any DecoderProtocol = JSONDecoder(),
         shouldCacheValue: Bool = false
     ) {
         self.filename = filename
         self.defaultValue = defaultValue
         self.directory = directory
+        self.encoder = encoder
+        self.decoder = decoder
         self.shouldCacheValue = shouldCacheValue
     }
     
@@ -44,7 +50,11 @@ public class CodableStorage<Value: Codable> {
             if let cachedValue {
                 return cachedValue
             }
-            return FileHelper.retrieve(filename, from: directory) ?? defaultValue
+            return FileHelper.retrieve(
+                filename,
+                from: directory,
+                using: decoder
+            ) ?? defaultValue
         }
         set {
             let value = newValue as Any
@@ -54,8 +64,12 @@ public class CodableStorage<Value: Codable> {
                 return
             }
             do {
-                try FileHelper.store(safeValue,
-                                     to: directory, as: filename)
+                try FileHelper.store(
+                    safeValue,
+                    to: directory,
+                    as: filename,
+                    using: encoder
+                )
                 if shouldCacheValue {
                     cachedValue = safeValue
                 }

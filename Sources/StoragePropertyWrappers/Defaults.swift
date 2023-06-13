@@ -8,6 +8,7 @@
 
 import Foundation
 import Combine
+import FileHelper
 
 /// Property wrapper that handles persisting the value to user defaults.
 @propertyWrapper
@@ -16,6 +17,8 @@ public class Defaults<Value: Codable> {
     private let key: String
     private let defaultValue: Value
     private let container: UserDefaults
+    private let encoder: any EncoderProtocol
+    private let decoder: any DecoderProtocol
     private let valueSubject: PassthroughSubject<Value, Never>
     
     /// Initializes the property wrapper.
@@ -26,24 +29,28 @@ public class Defaults<Value: Codable> {
     public init(
         key: String,
         defaultValue: Value,
-        container: UserDefaults = .standard
+        container: UserDefaults = .standard,
+        encoder: any EncoderProtocol = JSONEncoder(),
+        decoder: any DecoderProtocol = JSONDecoder()
     ) {
         self.key = key
         self.defaultValue = defaultValue
         self.container = container
+        self.encoder = encoder
+        self.decoder = decoder
         valueSubject = .init()
     }
     
     public var wrappedValue: Value {
         get {
             guard let data = container.data(forKey: key),
-                  let value = try? JSONDecoder().decode(Value.self, from: data) else {
+                  let value = try? decoder.decode(Value.self, from: data) else {
                 return defaultValue
             }
             return value
         }
         set {
-            if let data = try? JSONEncoder().encode(newValue),
+            if let data = try? encoder.encode(newValue),
                   !data.isEmpty {
                 container.set(data, forKey: key)
             }

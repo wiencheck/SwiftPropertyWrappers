@@ -9,6 +9,7 @@
 import Foundation
 import Combine
 import SimpleKeychain
+import FileHelper
 
 /// Property wrapper that uses iOS Keychain for persisting value.
 @propertyWrapper
@@ -16,6 +17,8 @@ public class KeychainStorage<Value: Codable> {
     
     private let key: String
     private let keychain: SimpleKeychain
+    private let decoder: any DecoderProtocol
+    private let encoder: any EncoderProtocol
     private let defaultValue: Value
     private let valueSubject: PassthroughSubject<Value, Never>
     
@@ -27,11 +30,15 @@ public class KeychainStorage<Value: Codable> {
     public init(
         keychain: SimpleKeychain = .init(),
         key: String,
-        defaultValue: Value
+        defaultValue: Value,
+        encoder: any EncoderProtocol = JSONEncoder(),
+        decoder: any DecoderProtocol = JSONDecoder()
     ) {
         self.keychain = keychain
         self.key = key
         self.defaultValue = defaultValue
+        self.encoder = encoder
+        self.decoder = decoder
         self.valueSubject = .init()
     }
     
