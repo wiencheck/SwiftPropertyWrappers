@@ -10,26 +10,35 @@ import Foundation
 import Combine
 import FileHelper
 
+/// Property wrapper that handles persisting the value to disk.
 @propertyWrapper
 public class CodableStorage<Value: Codable> {
-        
+    
     private let filename: String
     private let defaultValue: Value
     private var cachedValue: Value?
     private let directory: FileHelper.Directory
     private let publisher: PassthroughSubject<Value, Never> = .init()
     private let shouldCacheValue: Bool
-
-    public init(filename: String,
-                defaultValue: Value,
-                directory: FileHelper.Directory,
-                shouldCacheValue: Bool = false) {
+    
+    /// Initializes the property wrapper.
+    /// - Parameters:
+    ///   - filename: Name of the data file that will be saved to disk.
+    ///   - defaultValue: Default value that will be read when no value yet persists.
+    ///   - directory: Directory on disk to which the file should be saved.
+    ///   - shouldCacheValue: Flag indicating whether stored value should be kept in memory. Pass `true` if decoding the value could cause a performance issue.
+    public init(
+        filename: String,
+        defaultValue: Value,
+        directory: FileHelper.Directory,
+        shouldCacheValue: Bool = false
+    ) {
         self.filename = filename
         self.defaultValue = defaultValue
         self.directory = directory
         self.shouldCacheValue = shouldCacheValue
     }
-
+    
     public var wrappedValue: Value {
         get {
             if let cachedValue {
@@ -59,6 +68,28 @@ public class CodableStorage<Value: Codable> {
     
     public var projectedValue: AnyPublisher<Value, Never> {
         publisher.eraseToAnyPublisher()
+    }
+    
+}
+
+public extension CodableStorage where Value: ExpressibleByNilLiteral {
+    
+    /// Initializes the property wrapper with `nil` as default value.
+    /// - Parameters:
+    ///   - filename: Name of the data file that will be saved to disk.
+    ///   - directory: Directory on disk to which the file should be saved.
+    ///   - shouldCacheValue: Flag indicating whether stored value should be kept in memory. Pass `true` if decoding the value could cause a performance issue.
+    convenience init(
+        filename: String,
+        directory: FileHelper.Directory,
+        shouldCacheValue: Bool = false
+    ) {
+        self.init(
+            filename: filename,
+            defaultValue: nil,
+            directory: directory,
+            shouldCacheValue: shouldCacheValue
+        )
     }
     
 }
