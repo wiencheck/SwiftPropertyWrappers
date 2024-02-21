@@ -19,7 +19,7 @@ public class Defaults<Value: Codable> {
     private let container: UserDefaults
     private let encoder: any EncoderProtocol
     private let decoder: any DecoderProtocol
-    private let valueSubject: PassthroughSubject<Value, Never>
+    private let valueSubject: CurrentValueSubject<Value, Never>
     
     /// Initializes the property wrapper.
     /// - Parameters:
@@ -38,7 +38,14 @@ public class Defaults<Value: Codable> {
         self.container = container
         self.encoder = encoder
         self.decoder = decoder
-        valueSubject = .init()
+        
+        self.valueSubject = .init({
+            guard let data = container.data(forKey: key),
+                  let value = try? decoder.decode(Value.self, from: data) else {
+                return defaultValue
+            }
+            return value
+        }())
     }
     
     public var wrappedValue: Value {
