@@ -10,7 +10,7 @@ import SwiftPropertyWrappers
 
 struct ContentView: View {
     
-    @Defaults(key: "test_value", defaultValue: false)
+    @UserDefaultsStorage("test_value", defaultValue: false)
     var value: Bool
     
     var body: some View {

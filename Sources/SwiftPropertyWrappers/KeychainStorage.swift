@@ -21,18 +21,23 @@ public class KeychainStorage<Value: Codable> {
     private let encoder: any EncoderProtocol
     private let defaultValue: Value
     private let valueSubject: PassthroughSubject<Value, Never>
+    private let cacheValue: Bool
+    
+    private var cachedValue: Value?
     
     /// Initializes the property wrapper.
     /// - Parameters:
     ///   - keychain: Instance of `SimpleKeychain` to be used for persisting the value.
     ///   - key: Key under which the value will be stored in the keychain.
     ///   - defaultValue: Default value that will be read when no value yet persists.
+    ///   - cacheValue: Flag indicating whether stored value should be kept in memory. Pass `true` if decoding the value could cause a performance issue.
     public init(
-        keychain: SimpleKeychain = .init(),
-        key: String,
+        _ key: String,
         defaultValue: Value,
+        keychain: SimpleKeychain = .init(),
         encoder: any EncoderProtocol = JSONEncoder(),
-        decoder: any DecoderProtocol = JSONDecoder()
+        decoder: any DecoderProtocol = JSONDecoder(),
+        cacheValue: Bool = false
     ) {
         self.keychain = keychain
         self.key = key
@@ -40,35 +45,52 @@ public class KeychainStorage<Value: Codable> {
         self.encoder = encoder
         self.decoder = decoder
         self.valueSubject = .init()
+        self.cacheValue = cacheValue
     }
     
     public var wrappedValue: Value {
-        get {
-            do {
-                let data = try keychain.data(forKey: key)
-                return try JSONDecoder().decode(Value.self, from: data)
-            } catch {
-                print("*** Could not read value from keychain, error: \(error)")
-            }
-            return defaultValue
-        }
-        set {
-            do {
-                let anyValue = newValue as Any
-                guard let value = anyValue as? Value else {
-                    try keychain.deleteItem(forKey: key)
-                    return
-                }
-                let data = try JSONEncoder().encode(value)
-                try keychain.set(data, forKey: key)
-            } catch {
-                print("*** Could not store value to keychain, error: \(error)")
-            }
-        }
+        get { retrieveValue() }
+        set { store(newValue) }
     }
     
     public var projectedValue: AnyPublisher<Value, Never> {
         valueSubject.eraseToAnyPublisher()
+    }
+    
+}
+
+private extension KeychainStorage {
+    
+    func retrieveValue() -> Value {
+        if let cachedValue {
+            return cachedValue
+        }
+        do {
+            let data = try keychain.data(forKey: key)
+            return try decoder.decode(Value.self, from: data)
+        } catch {
+            print("KeychainStorage: Could not retrieve stored value due to error: \(error)")
+        }
+        return defaultValue
+    }
+    
+    func store(_ value: Value) {
+        do {
+            if (value as AnyObject) is NSNull {
+                try keychain.deleteItem(forKey: key)
+            }
+            else {
+                let data = try encoder.encode(value)
+                try keychain.set(data, forKey: key)
+            }
+        } catch {
+            print("KeychainStorage: Could not store value due to error: \(error)")
+            return
+        }
+        if cacheValue {
+            cachedValue = value
+        }
+        valueSubject.send(value)
     }
     
 }
@@ -80,13 +102,13 @@ public extension KeychainStorage where Value: ExpressibleByNilLiteral {
     ///   - keychain: Instance of `SimpleKeychain` to be used for persisting the value.
     ///   - key: Key under which the value will be stored in the keychain.
     convenience init(
-        keychain: SimpleKeychain = .init(),
-        key: String
+        key: String,
+        keychain: SimpleKeychain = .init()
     ) {
         self.init(
-            keychain: keychain,
-            key: key,
-            defaultValue: nil
+            key,
+            defaultValue: nil, 
+            keychain: keychain
         )
     }
     
