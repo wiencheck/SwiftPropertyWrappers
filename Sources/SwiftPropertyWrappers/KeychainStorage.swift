@@ -66,8 +66,9 @@ private extension KeychainStorage {
             return cachedValue
         }
         do {
-            let data = try keychain.data(forKey: key)
-            return try decoder.decode(Value.self, from: data)
+            if let data = try? keychain.data(forKey: key) {
+                return try decoder.decode(Value.self, from: data)
+            }
         } catch {
             print("KeychainStorage: Could not retrieve stored value due to error: \(error)")
         }

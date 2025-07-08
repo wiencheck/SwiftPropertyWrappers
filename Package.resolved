@@ -1,0 +1,23 @@
+{
+  "pins" : [
+    {
+      "identity" : "filehelper",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/wiencheck/FileHelper",
+      "state" : {
+        "branch" : "master",
+        "revision" : "a0f7cc1edb88f0f9b4e7249907bb38d6cd277d05"
+      }
+    },
+    {
+      "identity" : "simplekeychain",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/auth0/SimpleKeychain",
+      "state" : {
+        "revision" : "776c4a6db74d5c6c143974be91c383680d468630",
+        "version" : "1.3.0"
+      }
+    }
+  ],
+  "version" : 2
+}
