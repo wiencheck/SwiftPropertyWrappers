@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/wiencheck/FileHelper",
       "state" : {
-        "branch" : "master",
-        "revision" : "a0f7cc1edb88f0f9b4e7249907bb38d6cd277d05"
+        "revision" : "a0f7cc1edb88f0f9b4e7249907bb38d6cd277d05",
+        "version" : "1.0.6"
       }
     },
     {

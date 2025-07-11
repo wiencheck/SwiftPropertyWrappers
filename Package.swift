@@ -17,7 +17,7 @@ let package = Package(
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
-        .package(url: "https://github.com/wiencheck/FileHelper", branch: "master"),
+        .package(url: "https://github.com/wiencheck/FileHelper", from: "1.0.6"),
         .package(url: "https://github.com/auth0/SimpleKeychain", from: "1.1.0")
     ],
     targets: [
