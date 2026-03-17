@@ -19,10 +19,8 @@ public class UserDefaultsStorage<Value: Codable> {
     private let container: UserDefaults
     private let encoder: any EncoderProtocol
     private let decoder: any DecoderProtocol
-    private let valueSubject: PassthroughSubject<Value, Never>
-    private let cacheValue: Bool
     
-    private var cachedValue: Value?
+    private var valueSubject: (any Subject<Value, Never>)!
     
     /// Initializes the property wrapper.
     /// - Parameters:
@@ -42,9 +40,13 @@ public class UserDefaultsStorage<Value: Codable> {
         self.container = container
         self.encoder = encoder
         self.decoder = decoder
-        self.cacheValue = cacheValue
         
-        self.valueSubject = .init()
+        if cacheValue {
+            let initialValue = retrieveValue()
+            self.valueSubject = CurrentValueSubject(initialValue)
+        } else {
+            self.valueSubject = PassthroughSubject<Value, Never>()
+        }
     }
     
     public var wrappedValue: Value {
@@ -61,8 +63,8 @@ public class UserDefaultsStorage<Value: Codable> {
 private extension UserDefaultsStorage {
     
     func retrieveValue() -> Value {
-        if let cachedValue {
-            return cachedValue
+        if let value = (valueSubject as? CurrentValueSubject<Value, Never>)?.value {
+            return value
         }
         do {
             if let data = container.data(forKey: key) {
@@ -85,9 +87,6 @@ private extension UserDefaultsStorage {
         } catch {
             Logger.error("UserDefaultsStorage: Could not store value due to error: \(error)")
             return
-        }
-        if cacheValue {
-            cachedValue = value
         }
         valueSubject.send(value)
     }

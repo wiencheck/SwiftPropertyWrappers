@@ -22,7 +22,6 @@ public class CodableStorage<Value: Codable> {
     private let decoder: any DecoderProtocol
     
     private var valueSubject: (any Subject<Value, Never>)!
-    private var cachedValue: Value?
     
     /// Initializes the property wrapper.
     /// - Parameters:
@@ -58,7 +57,7 @@ public class CodableStorage<Value: Codable> {
     }
     
     public var projectedValue: AnyPublisher<Value, Never> {
-        valueSubject!.eraseToAnyPublisher()
+        valueSubject.eraseToAnyPublisher()
     }
     
 }
@@ -66,8 +65,8 @@ public class CodableStorage<Value: Codable> {
 private extension CodableStorage {
     
     func retrieveValue() -> Value {
-        if let cachedValue {
-            return cachedValue
+        if let value = (valueSubject as? CurrentValueSubject<Value, Never>)?.value {
+            return value
         }
         do {
             return try FileHelper.retrieve(

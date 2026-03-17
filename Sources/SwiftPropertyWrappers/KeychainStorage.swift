@@ -20,10 +20,8 @@ public class KeychainStorage<Value: Codable> {
     private let decoder: any DecoderProtocol
     private let encoder: any EncoderProtocol
     private let defaultValue: Value
-    private let valueSubject: PassthroughSubject<Value, Never>
-    private let cacheValue: Bool
     
-    private var cachedValue: Value?
+    private var valueSubject: (any Subject<Value, Never>)!
     
     /// Initializes the property wrapper.
     /// - Parameters:
@@ -44,8 +42,13 @@ public class KeychainStorage<Value: Codable> {
         self.defaultValue = defaultValue
         self.encoder = encoder
         self.decoder = decoder
-        self.valueSubject = .init()
-        self.cacheValue = cacheValue
+        
+        if cacheValue {
+            let initialValue = retrieveValue()
+            self.valueSubject = CurrentValueSubject(initialValue)
+        } else {
+            self.valueSubject = PassthroughSubject<Value, Never>()
+        }
     }
     
     public var wrappedValue: Value {
@@ -62,8 +65,8 @@ public class KeychainStorage<Value: Codable> {
 private extension KeychainStorage {
     
     func retrieveValue() -> Value {
-        if let cachedValue {
-            return cachedValue
+        if let value = (valueSubject as? CurrentValueSubject<Value, Never>)?.value {
+            return value
         }
         do {
             if let data = try? keychain.data(forKey: key) {
@@ -86,9 +89,6 @@ private extension KeychainStorage {
         } catch {
             Logger.error("KeychainStorage: Could not store value due to error: \(error)")
             return
-        }
-        if cacheValue {
-            cachedValue = value
         }
         valueSubject.send(value)
     }
