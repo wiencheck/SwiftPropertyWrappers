@@ -69,7 +69,7 @@ private extension UserDefaultsStorage {
                 return try decoder.decode(Value.self, from: data)
             }
         } catch {
-            print("Defaults: Could not retrieve stored value due to error: \(error)")
+            Logger.error("UserDefaultsStorage: Could not retrieve stored value due to error: \(error)")
         }
         return defaultValue
     }
@@ -78,13 +78,12 @@ private extension UserDefaultsStorage {
         do {
             if (value as AnyObject) is NSNull {
                 container.removeObject(forKey: key)
-            }
-            else {
+            } else {
                 let data = try encoder.encode(value)
                 container.set(data, forKey: key)
             }
         } catch {
-            print("Defaults: Could not store value due to error: \(error)")
+            Logger.error("UserDefaultsStorage: Could not store value due to error: \(error)")
             return
         }
         if cacheValue {

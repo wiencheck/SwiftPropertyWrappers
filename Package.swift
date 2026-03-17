@@ -17,14 +17,15 @@ let package = Package(
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
-        .package(url: "https://github.com/wiencheck/FileHelper", from: "1.0.6"),
-        .package(url: "https://github.com/auth0/SimpleKeychain", from: "1.1.0")
+        .package(url: "https://github.com/auth0/SimpleKeychain", from: "1.1.0"),
+        .package(url: "https://github.com/wiencheck/FileHelper", branch: "master"),
+        .package(url: "https://github.com/wiencheck/SimpleLogger", branch: "master")
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
         // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .target(
             name: "SwiftPropertyWrappers",
-            dependencies: ["FileHelper", "SimpleKeychain"]),
+            dependencies: ["FileHelper", "SimpleKeychain", "SimpleLogger"]),
     ]
 )

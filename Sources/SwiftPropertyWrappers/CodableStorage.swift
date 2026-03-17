@@ -9,6 +9,7 @@
 import Foundation
 import Combine
 import FileHelper
+import SimpleLogger
 
 /// Property wrapper that handles persisting the value to disk.
 @propertyWrapper
@@ -19,9 +20,8 @@ public class CodableStorage<Value: Codable> {
     private let directory: FileHelper.Directory
     private let encoder: any EncoderProtocol
     private let decoder: any DecoderProtocol
-    private let valueSubject: PassthroughSubject<Value, Never>
-    private let cacheValue: Bool
     
+    private var valueSubject: (any Subject<Value, Never>)!
     private var cachedValue: Value?
     
     /// Initializes the property wrapper.
@@ -43,8 +43,13 @@ public class CodableStorage<Value: Codable> {
         self.directory = directory
         self.encoder = encoder
         self.decoder = decoder
-        self.valueSubject = .init()
-        self.cacheValue = cacheValue
+        
+        if cacheValue {
+            let initialValue = retrieveValue()
+            self.valueSubject = CurrentValueSubject(initialValue)
+        } else {
+            self.valueSubject = PassthroughSubject<Value, Never>()
+        }
     }
     
     public var wrappedValue: Value {
@@ -53,7 +58,7 @@ public class CodableStorage<Value: Codable> {
     }
     
     public var projectedValue: AnyPublisher<Value, Never> {
-        valueSubject.eraseToAnyPublisher()
+        valueSubject!.eraseToAnyPublisher()
     }
     
 }
@@ -64,11 +69,16 @@ private extension CodableStorage {
         if let cachedValue {
             return cachedValue
         }
-        return FileHelper.retrieve(
-            filename,
-            from: directory,
-            using: decoder
-        ) ?? defaultValue
+        do {
+            return try FileHelper.retrieve(
+                filename,
+                from: directory,
+                using: decoder
+            )
+        } catch {
+            Logger.error("CodableStorage: Failed to retrieve file named: \(filename), error: \(error)")
+        }
+        return defaultValue
     }
     
     func store(_ value: Value) {
@@ -78,8 +88,7 @@ private extension CodableStorage {
                     filename,
                     from: directory
                 )
-            }
-            else {
+            } else {
                 try FileHelper.store(
                     value,
                     to: directory,
@@ -87,11 +96,8 @@ private extension CodableStorage {
                 )
             }
         } catch {
-            print("CodableStorage: Could not store value due to error: \(error)")
+            Logger.error("CodableStorage: Failed to store file named: \(filename), error: \(error)")
             return
-        }
-        if cacheValue {
-            cachedValue = value
         }
         valueSubject.send(value)
     }

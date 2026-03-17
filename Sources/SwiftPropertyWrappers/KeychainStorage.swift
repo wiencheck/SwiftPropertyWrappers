@@ -70,7 +70,7 @@ private extension KeychainStorage {
                 return try decoder.decode(Value.self, from: data)
             }
         } catch {
-            print("KeychainStorage: Could not retrieve stored value due to error: \(error)")
+            Logger.error("KeychainStorage: Could not retrieve stored value due to error: \(error)")
         }
         return defaultValue
     }
@@ -79,13 +79,12 @@ private extension KeychainStorage {
         do {
             if (value as AnyObject) is NSNull {
                 try keychain.deleteItem(forKey: key)
-            }
-            else {
+            } else {
                 let data = try encoder.encode(value)
                 try keychain.set(data, forKey: key)
             }
         } catch {
-            print("KeychainStorage: Could not store value due to error: \(error)")
+            Logger.error("KeychainStorage: Could not store value due to error: \(error)")
             return
         }
         if cacheValue {
