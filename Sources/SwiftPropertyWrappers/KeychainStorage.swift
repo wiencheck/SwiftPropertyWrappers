@@ -20,6 +20,7 @@ public class KeychainStorage<Value: Codable> {
     private let decoder: any DecoderProtocol
     private let encoder: any EncoderProtocol
     private let defaultValue: Value
+    private let cacheValue: Bool
     
     private var valueSubject: (any Subject<Value, Never>)!
     
@@ -42,6 +43,7 @@ public class KeychainStorage<Value: Codable> {
         self.defaultValue = defaultValue
         self.encoder = encoder
         self.decoder = decoder
+        self.cacheValue = cacheValue
         
         if cacheValue {
             let initialValue = retrieveValue()
@@ -57,7 +59,16 @@ public class KeychainStorage<Value: Codable> {
     }
     
     public var projectedValue: AnyPublisher<Value, Never> {
-        valueSubject.eraseToAnyPublisher()
+        if cacheValue {
+            valueSubject.eraseToAnyPublisher()
+        } else {
+            Publishers.Merge(
+                Just(retrieveValue())
+                    .eraseToAnyPublisher(),
+                valueSubject.eraseToAnyPublisher()
+            )
+            .eraseToAnyPublisher()
+        }
     }
     
 }
@@ -65,8 +76,8 @@ public class KeychainStorage<Value: Codable> {
 private extension KeychainStorage {
     
     func retrieveValue() -> Value {
-        if let value = (valueSubject as? CurrentValueSubject<Value, Never>)?.value {
-            return value
+        if let cachedValue = (valueSubject as? CurrentValueSubject<Value, Never>)?.value {
+            return cachedValue
         }
         do {
             if let data = try? keychain.data(forKey: key) {

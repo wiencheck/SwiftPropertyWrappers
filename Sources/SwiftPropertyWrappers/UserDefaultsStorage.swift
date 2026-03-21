@@ -19,6 +19,7 @@ public class UserDefaultsStorage<Value: Codable> {
     private let container: UserDefaults
     private let encoder: any EncoderProtocol
     private let decoder: any DecoderProtocol
+    private let cacheValue: Bool
     
     private var valueSubject: (any Subject<Value, Never>)!
     
@@ -40,6 +41,7 @@ public class UserDefaultsStorage<Value: Codable> {
         self.container = container
         self.encoder = encoder
         self.decoder = decoder
+        self.cacheValue = cacheValue
         
         if cacheValue {
             let initialValue = retrieveValue()
@@ -55,7 +57,16 @@ public class UserDefaultsStorage<Value: Codable> {
     }
     
     public var projectedValue: AnyPublisher<Value, Never> {
-        valueSubject.eraseToAnyPublisher()
+        if cacheValue {
+            valueSubject.eraseToAnyPublisher()
+        } else {
+            Publishers.Merge(
+                Just(retrieveValue())
+                    .eraseToAnyPublisher(),
+                valueSubject.eraseToAnyPublisher()
+            )
+            .eraseToAnyPublisher()
+        }
     }
     
 }
@@ -63,8 +74,8 @@ public class UserDefaultsStorage<Value: Codable> {
 private extension UserDefaultsStorage {
     
     func retrieveValue() -> Value {
-        if let value = (valueSubject as? CurrentValueSubject<Value, Never>)?.value {
-            return value
+        if let cachedValue = (valueSubject as? CurrentValueSubject<Value, Never>)?.value {
+            return cachedValue
         }
         do {
             if let data = container.data(forKey: key) {
