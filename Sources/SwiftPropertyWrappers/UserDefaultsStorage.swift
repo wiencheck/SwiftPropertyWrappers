@@ -79,7 +79,12 @@ private extension UserDefaultsStorage {
         }
         do {
             if let data = container.data(forKey: key) {
-                return try decoder.decode(Value.self, from: data)
+                let value = try decoder.decode(Value.self, from: data)
+                
+                if let cvs = valueSubject as? CurrentValueSubject<Value, Never> {
+                    cvs.value = value
+                }
+                return value
             }
         } catch {
             Logger.error("UserDefaultsStorage: Could not retrieve stored value due to error: \(error)")
