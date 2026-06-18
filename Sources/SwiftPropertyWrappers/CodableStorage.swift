@@ -80,15 +80,16 @@ private extension CodableStorage {
             return cachedValue
         }
         do {
-            let value: Value = try FileHelper.retrieve(
+            if let value: Value = try FileHelper.retrieve(
                 filename,
                 from: directory,
                 using: decoder
-            )
-            if let cvs = valueSubject as? CurrentValueSubject<Value, Never> {
-                cvs.value = value
+            ) {
+                if let cvs = valueSubject as? CurrentValueSubject<Value, Never> {
+                    cvs.value = value
+                }
+                return value
             }
-            return value
         } catch {
             Logger.error("CodableStorage: Failed to retrieve file named: \(filename), error: \(error)")
         }
