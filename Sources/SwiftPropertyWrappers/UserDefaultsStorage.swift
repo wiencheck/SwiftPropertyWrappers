@@ -21,7 +21,9 @@ public class UserDefaultsStorage<Value: Codable> {
     private let decoder: any DecoderProtocol
     private let cacheValue: Bool
     
-    private var valueSubject: (any Subject<Value, Never>)!
+    private let subject = PassthroughSubject<Value, Never>()
+    
+    private var cachedValue: Value?
     
     /// Initializes the property wrapper.
     /// - Parameters:
@@ -42,13 +44,6 @@ public class UserDefaultsStorage<Value: Codable> {
         self.encoder = encoder
         self.decoder = decoder
         self.cacheValue = cacheValue
-        
-        if cacheValue {
-            let initialValue = retrieveValue()
-            self.valueSubject = CurrentValueSubject(initialValue)
-        } else {
-            self.valueSubject = PassthroughSubject<Value, Never>()
-        }
     }
     
     public var wrappedValue: Value {
@@ -57,16 +52,9 @@ public class UserDefaultsStorage<Value: Codable> {
     }
     
     public var projectedValue: AnyPublisher<Value, Never> {
-        if cacheValue {
-            valueSubject.eraseToAnyPublisher()
-        } else {
-            Publishers.Merge(
-                Just(retrieveValue())
-                    .eraseToAnyPublisher(),
-                valueSubject.eraseToAnyPublisher()
-            )
+        subject
+            .prepend(retrieveValue())
             .eraseToAnyPublisher()
-        }
     }
     
 }
@@ -74,16 +62,13 @@ public class UserDefaultsStorage<Value: Codable> {
 private extension UserDefaultsStorage {
     
     func retrieveValue() -> Value {
-        if let cachedValue = (valueSubject as? CurrentValueSubject<Value, Never>)?.value {
+        if let cachedValue {
             return cachedValue
         }
         do {
             if let data = container.data(forKey: key) {
                 let value = try decoder.decode(Value.self, from: data)
-                
-                if let cvs = valueSubject as? CurrentValueSubject<Value, Never> {
-                    cvs.value = value
-                }
+                if cacheValue { cachedValue = value }
                 return value
             }
         } catch {
@@ -100,11 +85,11 @@ private extension UserDefaultsStorage {
                 let data = try encoder.encode(value)
                 container.set(data, forKey: key)
             }
+            if cacheValue { cachedValue = value }
+            subject.send(value)
         } catch {
             Logger.error("UserDefaultsStorage: Could not store value due to error: \(error)")
-            return
         }
-        valueSubject.send(value)
     }
     
 }

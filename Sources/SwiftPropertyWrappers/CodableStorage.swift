@@ -22,7 +22,9 @@ public class CodableStorage<Value: Codable> {
     private let decoder: any DecoderProtocol
     private let cacheValue: Bool
     
-    private var valueSubject: (any Subject<Value, Never>)!
+    private let subject: PassthroughSubject<Value, Never>
+    
+    private var cachedValue: Value?
     
     /// Initializes the property wrapper.
     /// - Parameters:
@@ -45,12 +47,7 @@ public class CodableStorage<Value: Codable> {
         self.decoder = decoder
         self.cacheValue = cacheValue
         
-        if cacheValue {
-            let initialValue = retrieveValue()
-            self.valueSubject = CurrentValueSubject(initialValue)
-        } else {
-            self.valueSubject = PassthroughSubject<Value, Never>()
-        }
+        self.subject = .init()
     }
     
     public var wrappedValue: Value {
@@ -59,16 +56,9 @@ public class CodableStorage<Value: Codable> {
     }
     
     public var projectedValue: AnyPublisher<Value, Never> {
-        if cacheValue {
-            valueSubject.eraseToAnyPublisher()
-        } else {
-            Publishers.Merge(
-                Just(retrieveValue())
-                    .eraseToAnyPublisher(),
-                valueSubject.eraseToAnyPublisher()
-            )
+        subject
+            .prepend(retrieveValue())
             .eraseToAnyPublisher()
-        }
     }
     
 }
@@ -76,7 +66,7 @@ public class CodableStorage<Value: Codable> {
 private extension CodableStorage {
     
     func retrieveValue() -> Value {
-        if let cachedValue = (valueSubject as? CurrentValueSubject<Value, Never>)?.value {
+        if let cachedValue {
             return cachedValue
         }
         do {
@@ -85,9 +75,7 @@ private extension CodableStorage {
                 from: directory,
                 using: decoder
             ) {
-                if let cvs = valueSubject as? CurrentValueSubject<Value, Never> {
-                    cvs.value = value
-                }
+                if cacheValue { cachedValue = value }
                 return value
             }
         } catch {
@@ -110,11 +98,11 @@ private extension CodableStorage {
                     as: filename
                 )
             }
+            if cacheValue { cachedValue = value }
+            subject.send(value)
         } catch {
             Logger.error("CodableStorage: Failed to store file named: \(filename), error: \(error)")
-            return
         }
-        valueSubject.send(value)
     }
     
 }
