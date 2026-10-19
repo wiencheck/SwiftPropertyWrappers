@@ -10,6 +10,7 @@ import Foundation
 import Combine
 import SimpleKeychain
 import FileHelper
+import OSLog
 
 /// Property wrapper that uses iOS Keychain for persisting value.
 @propertyWrapper
@@ -22,6 +23,7 @@ public class KeychainStorage<Value: Codable> {
     private let defaultValue: Value
     private let cacheValue: Bool
     
+    private let logger: Logger?
     private let subject = PassthroughSubject<Value, Never>()
     
     private var cachedValue: Value?
@@ -38,6 +40,7 @@ public class KeychainStorage<Value: Codable> {
         keychain: SimpleKeychain = .init(),
         encoder: any EncoderProtocol = JSONEncoder(),
         decoder: any DecoderProtocol = JSONDecoder(),
+        logger: Logger? = nil,
         cacheValue: Bool = false
     ) {
         self.keychain = keychain
@@ -45,6 +48,7 @@ public class KeychainStorage<Value: Codable> {
         self.defaultValue = defaultValue
         self.encoder = encoder
         self.decoder = decoder
+        self.logger = logger
         self.cacheValue = cacheValue
     }
     
@@ -74,7 +78,7 @@ private extension KeychainStorage {
                 return value
             }
         } catch {
-            Logger.error("KeychainStorage: Could not retrieve stored value due to error: \(error)")
+            logger?.error("KeychainStorage: Could not retrieve stored value due to error: \(error)")
         }
         return defaultValue
     }
@@ -90,7 +94,7 @@ private extension KeychainStorage {
             if cacheValue { cachedValue = value }
             subject.send(value)
         } catch {
-            Logger.error("KeychainStorage: Could not store value due to error: \(error)")
+            logger?.error("KeychainStorage: Could not store value due to error: \(error)")
         }
     }
     

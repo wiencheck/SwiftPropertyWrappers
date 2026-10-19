@@ -4,3 +4,4 @@ Sources/SwiftPropertyWrappers/.DS_Store
 Sources/.DS_Store
 .DS_Store
 Package.resolved
+*.xcuserstate

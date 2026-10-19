@@ -9,7 +9,7 @@
 import Foundation
 import Combine
 import FileHelper
-import SimpleLogger
+import OSLog
 
 /// Property wrapper that handles persisting the value to disk.
 @propertyWrapper
@@ -22,6 +22,7 @@ public class CodableStorage<Value: Codable> {
     private let decoder: any DecoderProtocol
     private let cacheValue: Bool
     
+    private let fileHelper: FileHelper
     private let subject: PassthroughSubject<Value, Never>
     
     private var cachedValue: Value?
@@ -38,6 +39,7 @@ public class CodableStorage<Value: Codable> {
         directory: FileHelper.Directory,
         encoder: any EncoderProtocol = JSONEncoder(),
         decoder: any DecoderProtocol = JSONDecoder(),
+        logger: Logger? = nil,
         cacheValue: Bool = false
     ) {
         self.filename = filename
@@ -45,6 +47,7 @@ public class CodableStorage<Value: Codable> {
         self.directory = directory
         self.encoder = encoder
         self.decoder = decoder
+        self.fileHelper = FileHelper(logger: logger)
         self.cacheValue = cacheValue
         
         self.subject = .init()
@@ -70,7 +73,7 @@ private extension CodableStorage {
             return cachedValue
         }
         do {
-            if let value: Value = try FileHelper.retrieve(
+            if let value: Value = try fileHelper.retrieve(
                 filename,
                 from: directory,
                 using: decoder
@@ -79,7 +82,9 @@ private extension CodableStorage {
                 return value
             }
         } catch {
-            Logger.error("CodableStorage: Failed to retrieve file named: \(filename), error: \(error)")
+            fileHelper.logger?.error(
+                "CodableStorage: Failed to retrieve file named: \(self.filename), error: \(error)"
+            )
         }
         return defaultValue
     }
@@ -87,12 +92,12 @@ private extension CodableStorage {
     func store(_ value: Value) {
         do {
             if (value as AnyObject) is NSNull {
-                try FileHelper.remove(
+                try fileHelper.remove(
                     filename,
                     from: directory
                 )
             } else {
-                try FileHelper.store(
+                try fileHelper.store(
                     value,
                     to: directory,
                     as: filename
@@ -101,7 +106,7 @@ private extension CodableStorage {
             if cacheValue { cachedValue = value }
             subject.send(value)
         } catch {
-            Logger.error("CodableStorage: Failed to store file named: \(filename), error: \(error)")
+            fileHelper.logger?.error("CodableStorage: Failed to store file named: \(self.filename), error: \(error)")
         }
     }
     

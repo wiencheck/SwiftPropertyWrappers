@@ -9,6 +9,7 @@
 import Foundation
 import Combine
 import FileHelper
+import OSLog
 
 /// Property wrapper that handles persisting the value to user defaults.
 @propertyWrapper
@@ -21,6 +22,7 @@ public class UserDefaultsStorage<Value: Codable> {
     private let decoder: any DecoderProtocol
     private let cacheValue: Bool
     
+    private let logger: Logger?
     private let subject = PassthroughSubject<Value, Never>()
     
     private var cachedValue: Value?
@@ -36,6 +38,7 @@ public class UserDefaultsStorage<Value: Codable> {
         container: UserDefaults = .standard,
         encoder: any EncoderProtocol = JSONEncoder(),
         decoder: any DecoderProtocol = JSONDecoder(),
+        logger: Logger? = nil,
         cacheValue: Bool = false
     ) {
         self.key = key
@@ -43,6 +46,7 @@ public class UserDefaultsStorage<Value: Codable> {
         self.container = container
         self.encoder = encoder
         self.decoder = decoder
+        self.logger = logger
         self.cacheValue = cacheValue
     }
     
@@ -72,7 +76,7 @@ private extension UserDefaultsStorage {
                 return value
             }
         } catch {
-            Logger.error("UserDefaultsStorage: Could not retrieve stored value due to error: \(error)")
+            logger?.error("UserDefaultsStorage: Could not retrieve stored value due to error: \(error)")
         }
         return defaultValue
     }
@@ -88,7 +92,7 @@ private extension UserDefaultsStorage {
             if cacheValue { cachedValue = value }
             subject.send(value)
         } catch {
-            Logger.error("UserDefaultsStorage: Could not store value due to error: \(error)")
+            logger?.error("UserDefaultsStorage: Could not store value due to error: \(error)")
         }
     }
     
