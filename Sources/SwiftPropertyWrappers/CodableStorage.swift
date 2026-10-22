@@ -81,6 +81,8 @@ private extension CodableStorage {
                 if cacheValue { cachedValue = value }
                 return value
             }
+        } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
+            return defaultValue
         } catch {
             fileHelper.logger?.error(
                 "CodableStorage: Failed to retrieve file named: \(self.filename), error: \(error)"
@@ -131,5 +133,4 @@ public extension CodableStorage where Value: ExpressibleByNilLiteral {
             cacheValue: cacheValue
         )
     }
-    
 }
